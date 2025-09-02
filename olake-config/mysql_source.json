@@ -1,0 +1,16 @@
+{
+  "type": "mysql",
+  "host": "mysql",
+  "port": 3306,
+  "database": "demo_db",
+  "user": "olake",
+  "password": "olake_pass",
+  "tables": [
+    "users",
+    "products",
+    "orders",
+    "user_sessions"
+  ],
+  "ssl": false,
+  "chunk_size": 1000
+}

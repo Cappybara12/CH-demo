@@ -1,0 +1,31 @@
+# Docker volumes and data
+mysql-data/
+minio-data/
+clickhouse-data/
+clickhouse-logs/
+postgres-data/
+olake-data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# Backup files
+*.bak
+*.backup

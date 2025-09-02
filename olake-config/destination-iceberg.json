@@ -1,0 +1,274 @@
+{
+  "name": "iceberg-s3-destination",
+  "description": "Iceberg destination on MinIO S3 for ClickHouse demo",
+  "type": "iceberg",
+  "config": {
+    "catalog": {
+      "type": "hadoop",
+      "warehouse": "s3a://iceberg-warehouse/",
+      "uri": "thrift://localhost:9083",
+      "properties": {
+        "fs.s3a.endpoint": "http://minio:9000",
+        "fs.s3a.access.key": "minioadmin",
+        "fs.s3a.secret.key": "minioadmin123",
+        "fs.s3a.path.style.access": "true",
+        "fs.s3a.impl": "org.apache.hadoop.fs.s3a.S3AFileSystem",
+        "hadoop.tmp.dir": "/tmp/hadoop"
+      }
+    },
+    "storage": {
+      "type": "s3",
+      "endpoint": "http://minio:9000",
+      "access_key": "minioadmin",
+      "secret_key": "minioadmin123",
+      "bucket": "iceberg-warehouse",
+      "region": "us-east-1",
+      "path_style_access": true,
+      "ssl_enabled": false
+    },
+    "format": {
+      "file_format": "parquet",
+      "compression": "snappy",
+      "row_group_size": 134217728,
+      "page_size": 1048576,
+      "dictionary_enabled": true,
+      "max_padding_size": 8388608
+    },
+    "partitioning": {
+      "enabled": true,
+      "strategies": {
+        "users": [
+          {
+            "column": "created_at",
+            "transform": "month"
+          },
+          {
+            "column": "country",
+            "transform": "identity"
+          }
+        ],
+        "products": [
+          {
+            "column": "category", 
+            "transform": "identity"
+          }
+        ],
+        "orders": [
+          {
+            "column": "order_date",
+            "transform": "month"
+          },
+          {
+            "column": "status",
+            "transform": "identity"
+          }
+        ],
+        "user_sessions": [
+          {
+            "column": "login_time",
+            "transform": "day"
+          }
+        ]
+      }
+    },
+    "schema_evolution": {
+      "enabled": true,
+      "auto_add_columns": true,
+      "auto_promote_types": true,
+      "case_sensitive": false
+    },
+    "table_properties": {
+      "format-version": "2",
+      "write.parquet.compression-codec": "snappy",
+      "write.metadata.compression-codec": "gzip",
+      "write.metadata.metrics.default": "truncate(16)",
+      "write.metadata.metrics.column.id": "count",
+      "write.metadata.metrics.column.created_at": "count",
+      "write.metadata.metrics.column.updated_at": "count",
+      "write.target-file-size-bytes": "536870912",
+      "write.delete.mode": "merge-on-read",
+      "write.update.mode": "merge-on-read",
+      "write.merge.mode": "merge-on-read",
+      "history.expire.max-snapshot-age-ms": "432000000",
+      "history.expire.min-snapshots-to-keep": "5"
+    },
+    "write_mode": "append",
+    "batch_size": 10000,
+    "flush_interval": "60s",
+    "commit_interval": "300s"
+  },
+  "tables": [
+    {
+      "source_table": "users",
+      "destination_table": "users",
+      "namespace": "demo_lakehouse",
+      "partitioning": [
+        {
+          "column": "created_at",
+          "transform": "month"
+        },
+        {
+          "column": "country",
+          "transform": "identity"
+        }
+      ],
+      "clustering": [
+        "id",
+        "status"
+      ],
+      "schema": {
+        "id": "int",
+        "username": "string",
+        "email": "string",
+        "full_name": "string",
+        "created_at": "timestamp",
+        "updated_at": "timestamp",
+        "status": "string",
+        "age": "int",
+        "country": "string",
+        "_olake_sync_timestamp": "timestamp",
+        "_olake_operation": "string"
+      },
+      "write_mode": "upsert",
+      "primary_key": ["id"],
+      "merge_strategy": "merge_on_read"
+    },
+    {
+      "source_table": "products",
+      "destination_table": "products", 
+      "namespace": "demo_lakehouse",
+      "partitioning": [
+        {
+          "column": "category",
+          "transform": "identity"
+        }
+      ],
+      "clustering": [
+        "id",
+        "is_active"
+      ],
+      "schema": {
+        "id": "int",
+        "product_name": "string",
+        "category": "string",
+        "price": "decimal(10,2)",
+        "stock_quantity": "int",
+        "created_at": "timestamp",
+        "updated_at": "timestamp",
+        "is_active": "boolean",
+        "_olake_sync_timestamp": "timestamp",
+        "_olake_operation": "string"
+      },
+      "write_mode": "upsert",
+      "primary_key": ["id"],
+      "merge_strategy": "merge_on_read"
+    },
+    {
+      "source_table": "orders",
+      "destination_table": "orders",
+      "namespace": "demo_lakehouse", 
+      "partitioning": [
+        {
+          "column": "order_date",
+          "transform": "month"
+        },
+        {
+          "column": "status",
+          "transform": "identity"
+        }
+      ],
+      "clustering": [
+        "id",
+        "user_id",
+        "product_id"
+      ],
+      "schema": {
+        "id": "int",
+        "user_id": "int",
+        "product_id": "int",
+        "quantity": "int",
+        "unit_price": "decimal(10,2)",
+        "total_amount": "decimal(12,2)",
+        "order_date": "timestamp",
+        "status": "string",
+        "shipping_address": "string",
+        "notes": "string",
+        "_olake_sync_timestamp": "timestamp",
+        "_olake_operation": "string"
+      },
+      "write_mode": "upsert",
+      "primary_key": ["id"],
+      "merge_strategy": "merge_on_read"
+    },
+    {
+      "source_table": "user_sessions",
+      "destination_table": "user_sessions",
+      "namespace": "demo_lakehouse",
+      "partitioning": [
+        {
+          "column": "login_time",
+          "transform": "day"
+        }
+      ],
+      "clustering": [
+        "id",
+        "user_id",
+        "is_active"
+      ],
+      "schema": {
+        "id": "int",
+        "user_id": "int",
+        "session_token": "string",
+        "ip_address": "string",
+        "user_agent": "string",
+        "login_time": "timestamp",
+        "last_activity": "timestamp",
+        "is_active": "boolean",
+        "_olake_sync_timestamp": "timestamp",
+        "_olake_operation": "string"
+      },
+      "write_mode": "upsert",
+      "primary_key": ["id"],
+      "merge_strategy": "merge_on_read"
+    }
+  ],
+  "monitoring": {
+    "enabled": true,
+    "metrics": {
+      "files_written": true,
+      "rows_written": true,
+      "bytes_written": true,
+      "write_duration": true,
+      "commit_duration": true,
+      "table_size": true,
+      "partition_count": true,
+      "snapshot_count": true
+    },
+    "alerts": {
+      "write_failure": true,
+      "schema_conflict": true,
+      "storage_quota": true
+    }
+  },
+  "advanced": {
+    "parallelism": 4,
+    "memory_limit": "4GB",
+    "buffer_size": "256MB",
+    "compression": {
+      "enabled": true,
+      "algorithm": "snappy"
+    },
+    "optimization": {
+      "auto_compact": true,
+      "compact_threshold": 10,
+      "expire_snapshots": true,
+      "expire_snapshots_older_than": "7d",
+      "remove_orphan_files": true
+    },
+    "retry_policy": {
+      "max_retries": 3,
+      "retry_delay": "30s",
+      "exponential_backoff": true
+    }
+  }
+}

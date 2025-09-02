@@ -1,0 +1,56 @@
+# OLake Iceberg Destination Configuration
+# Based on https://olake.io/docs
+
+destination:
+  type: iceberg
+  config:
+    # Catalog configuration - using REST catalog for simplicity
+    catalog:
+      type: rest
+      uri: "http://minio:9000"
+      warehouse: "s3a://iceberg-warehouse/"
+      
+      # S3 configuration for MinIO
+      s3:
+        endpoint: "http://minio:9000"
+        access_key_id: "minioadmin"
+        secret_access_key: "minioadmin123"
+        path_style_access: true
+        region: "us-east-1"
+        
+    # Table configuration
+    tables:
+      namespace: "olake_demo"  # Database/schema name in Iceberg
+      
+      # Partitioning strategy
+      partitioning:
+        users:
+          - column: "created_at"
+            transform: "month"
+        orders:
+          - column: "order_date" 
+            transform: "month"
+          - column: "status"
+            transform: "identity"
+        user_sessions:
+          - column: "login_time"
+            transform: "day"
+            
+    # File format settings
+    file_format:
+      type: "parquet"
+      compression: "snappy"
+      row_group_size: 134217728  # 128MB
+      
+    # Write mode
+    write_mode: "append"
+    
+    # Schema evolution
+    schema_evolution:
+      auto_add_columns: true
+      auto_promote_types: true
+      
+    # Performance settings  
+    batch_size: 1000
+    flush_size: 10000
+    commit_interval_ms: 300000  # 5 minutes

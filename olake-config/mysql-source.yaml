@@ -1,0 +1,50 @@
+# OLake MySQL Source Configuration
+# Based on https://olake.io/docs/connectors/mysql/overview
+
+source:
+  type: mysql
+  config:
+    host: mysql
+    port: 3306
+    database: demo_db
+    username: olake
+    password: olake_pass
+    
+    # CDC Configuration for MySQL binlog
+    cdc:
+      enabled: true
+      binlog_position: "auto"  # Start from current position
+      server_id: 100  # Unique server ID for replication
+      
+    # SSL Configuration (disabled for local development)
+    ssl:
+      enabled: false
+      
+    # Performance tuning
+    connection_timeout_seconds: 30
+    socket_timeout_seconds: 60
+    
+    # Chunking configuration for large tables
+    chunk_size: 10000
+    max_threads: 4
+    
+    # Tables to replicate
+    tables:
+      - name: users
+        mode: cdc  # Full load + CDC
+        primary_key: id
+      - name: products  
+        mode: cdc
+        primary_key: id
+      - name: orders
+        mode: cdc
+        primary_key: id
+      - name: user_sessions
+        mode: cdc
+        primary_key: id
+
+# Sync schedule (for demonstration - every 5 minutes)
+schedule:
+  type: cron
+  expression: "*/5 * * * *"
+  timezone: UTC

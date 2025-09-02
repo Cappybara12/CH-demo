@@ -1,0 +1,179 @@
+# Docker Compose file for ClickHouse + MySQL + OLake + Iceberg Demo
+
+services:
+  # MySQL 8.0 with CDC enabled
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-server
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: demo_db
+      MYSQL_USER: demo_user
+      MYSQL_PASSWORD: demo_password
+    command: >
+      --log-bin=mysql-bin
+      --server-id=1
+      --binlog-format=ROW
+      --gtid-mode=ON
+      --enforce-gtid-consistency=ON
+      --log-slave-updates=ON
+      --binlog-row-image=FULL
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql-init:/docker-entrypoint-initdb.d
+      - mysql-data:/var/lib/mysql
+    networks:
+      - lakehouse-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # MinIO S3 Storage for Iceberg
+  minio:
+    image: minio/minio:latest
+    container_name: minio-server
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9091"
+    ports:
+      - "9090:9000"
+      - "9091:9091"
+    volumes:
+      - minio-data:/data
+    networks:
+      - lakehouse-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MinIO Client for bucket initialization
+  minio-client:
+    image: minio/mc:latest
+    container_name: minio-client
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      - lakehouse-net
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+      /usr/bin/mc mb myminio/iceberg-warehouse --ignore-existing;
+      /usr/bin/mc mb myminio/olake-data --ignore-existing;
+      /usr/bin/mc policy set public myminio/iceberg-warehouse;
+      /usr/bin/mc policy set public myminio/olake-data;
+      echo 'MinIO buckets created successfully';
+      exit 0;
+      "
+
+  # ClickHouse Server with Iceberg support
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-server
+    ports:
+      - "8123:8123"  # HTTP interface
+      - "19000:9000"  # Native interface
+      - "19004:9004"  # MySQL interface
+    volumes:
+      - ./clickhouse-config/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./clickhouse-config/users.xml:/etc/clickhouse-server/users.d/users.xml
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    depends_on:
+      minio:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    networks:
+      - lakehouse-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ClickHouse Client for easy CLI access
+  clickhouse-client:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-client
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      - lakehouse-net
+    stdin_open: true
+    tty: true
+    command: tail -f /dev/null
+
+  # PostgreSQL for OLake metadata
+  postgres:
+    image: postgres:15
+    container_name: postgres-olake
+    environment:
+      POSTGRES_DB: olake
+      POSTGRES_USER: olake_user
+      POSTGRES_PASSWORD: olake_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - lakehouse-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U olake_user -d olake"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # OLake - Will be set up separately using CLI approach
+  # Following https://olake.io/docs/install approach
+  # olake:
+  #   # We'll install OLake CLI manually for better control
+
+  # MySQL Client for easy database access
+  mysql-client:
+    image: mysql:8.0
+    container_name: mysql-client
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./scripts:/scripts
+    networks:
+      - lakehouse-net
+    stdin_open: true
+    tty: true
+    command: tail -f /dev/null
+
+volumes:
+  mysql-data:
+  minio-data:
+  clickhouse-data:
+  clickhouse-logs:
+  postgres-data:
+  olake-data:
+
+networks:
+  lakehouse-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
