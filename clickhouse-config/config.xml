@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Enable experimental Iceberg features -->
+    <experimental_features>
+        <iceberg>1</iceberg>
+        <iceberg_s3>1</iceberg_s3>
+    </experimental_features>
+    
+    <!-- S3 Configuration for MinIO -->
+    <s3>
+        <endpoint>http://minio:9000</endpoint>
+        <access_key_id>minioadmin</access_key_id>
+        <secret_access_key>minioadmin123</secret_access_key>
+        <region>us-east-1</region>
+        <use_environment_credentials>false</use_environment_credentials>
+        <use_insecure_imds_request>true</use_insecure_imds_request>
+    </s3>
+    
+    <!-- Iceberg specific settings -->
+    <iceberg>
+        <enable_experimental_analyzers>1</enable_experimental_analyzers>
+        <enable_experimental_lightweight_delete>1</enable_experimental_lightweight_delete>
+    </iceberg>
+    
+    <!-- Memory and performance settings -->
+    <max_memory_usage>10000000000</max_memory_usage>
+    <max_bytes_before_external_group_by>20000000000</max_bytes_before_external_group_by>
+    <max_bytes_before_external_sort>20000000000</max_bytes_before_external_sort>
+    
+    <!-- Network settings -->
+    <listen_host>0.0.0.0</listen_host>
+    <http_port>8123</http_port>
+    <tcp_port>9000</tcp_port>
+    <mysql_port>9004</mysql_port>
+    
+    <!-- Logging -->
+    <logger>
+        <level>information</level>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+    </logger>
+    
+    <!-- Data paths -->
+    <path>/var/lib/clickhouse/</path>
+    <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+    <user_files_path>/var/lib/clickhouse/user_files/</user_files_path>
+    
+    <!-- Format settings -->
+    <format_schema_path>/var/lib/clickhouse/format_schemas/</format_schema_path>
+    
+    <!-- Timezone -->
+    <timezone>UTC</timezone>
+    
+    <!-- Query settings -->
+    <max_concurrent_queries>100</max_concurrent_queries>
+    <max_server_memory_usage>0</max_server_memory_usage>
+    
+    <!-- Experimental features -->
+    <allow_experimental_analyzer>1</allow_experimental_analyzer>
+    <allow_experimental_lightweight_delete>1</allow_experimental_lightweight_delete>
+    <allow_experimental_insert_into_iceberg>1</allow_experimental_insert_into_iceberg>
+</clickhouse>

@@ -848,12 +848,24 @@ Tables discovered:
 This is really cool! The OLake discovery process generates comprehensive schema information for each table. Let's take a look at what it found:
 
 ```bash
-# View the complete schema discovery output
+# View the complete schema discovery output for the orders table
 docker exec olake-worker bash -c "
   cd /tmp/olake/drivers/mysql
-  ./olake-mysql discover --config source.json | jq '.catalog.streams[0].stream.type_schema.properties' 2>/dev/null || echo 'Complete schema discovered'
+  ./olake-mysql discover --config source.json | jq '.catalog.streams[] | select(.name == \"orders\") | .type_schema' 2>/dev/null || echo 'Complete schema discovered'
 "
 ```
+
+**Expected Output:**
+```
+Large JSON schema output showing detailed field definitions for the orders table including:
+- Field types (integer_small, string, number_small, timestamp, etc.)
+- Nullable fields with ["type","null"] arrays  
+- Primary key definitions
+- Supported sync modes (full_refresh, increment)
+- OLake metadata fields (_olake_id, _olake_timestamp, _op_type)
+```
+
+**📸 Screenshot Needed**: OLake detailed schema discovery output
 
 **Key Schema Information Discovered:**
 - **Products Table**: 10 fields including id, product_name, category, price, stock_quantity, with proper type mapping
@@ -968,6 +980,20 @@ Login credentials:
 - Password: `minioadmin123`
 
 Navigate to the `iceberg-warehouse` bucket to see the Iceberg table files. This is where you can visually explore the data lake structure and see how Iceberg organizes the data files.
+
+**Command to verify MinIO storage:**
+```bash
+# Check MinIO buckets
+docker exec minio-client mc ls myminio/
+
+# View Iceberg files  
+docker exec minio-client mc ls myminio/iceberg-warehouse/ --recursive
+```
+
+**Expected Output:**
+```
+Your actual data stored in columnar format
+```
 
 **📸 Screenshot Needed**: MinIO console showing Iceberg files
 
