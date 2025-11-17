@@ -1,7 +1,6 @@
 # ClickHouse + MySQL + OLake + Iceberg Data Lakehouse Demo
 
 A comprehensive Docker-based development environment showcasing ClickHouse's experimental Iceberg write support integrated with MySQL as a source database and OLake as a data lake orchestration platform. This setup demonstrates modern data lakehouse architecture with real-time CDC capabilities.
-![Datazip Team_s Video - Oct 3, 2025-VEED](https://github.com/user-attachments/assets/10056426-ffb2-4f7e-ace0-27b1368f9208)
 
 ## 🏗️ Architecture Overview
 
